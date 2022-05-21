@@ -23,6 +23,33 @@ async function run() {
             const services = await cursor.toArray();
             res.send(services);
         })
+
+        // this is not the proper way ..use mongodb lookup aggregation,pipeline,group
+        app.get("/available", async (req, res) => {
+            const date = req.query.date || "May 21, 2022";
+            // 1. get all services
+            const services = await serviceCollection.find().toArray();
+            // 2.get the booking of that date
+            const query = { date: date }
+            const bookings = await bookingCollection.find(query).toArray();
+
+            // 3.for each service
+            services.forEach(service => {
+                // 4.find booking for that sevice:[{}, {}, {}, {}]
+                const serviceBookings = bookings.filter(book => book.treatment === service.name);
+                // 5.Select slot for the serviceBookings:[" ", " ", " "]
+                const bookedSlots = serviceBookings.map(b => b.slot);
+                // 6.select those slot that are not in booked slot:[" ", " ", " "]
+                const available = service.slots.filter(slot => !bookedSlots.includes(slot));
+                // 7.set available slots to service
+                service.slots = available
+            })
+
+            res.send(services)
+        })
+
+
+
         /**
          * Api Naming 
          * app.get("/booking") // get all booking
