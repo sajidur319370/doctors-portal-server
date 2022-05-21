@@ -16,11 +16,30 @@ async function run() {
     try {
         await client.connect();
         const serviceCollection = client.db("doctors_portal").collection("services");
+        const bookingCollection = client.db("doctors_portal").collection("bookings");
         app.get("/service", async (req, res) => {
             const query = {};
             const cursor = serviceCollection.find(query);
             const services = await cursor.toArray();
             res.send(services);
+        })
+        /**
+         * Api Naming 
+         * app.get("/booking") // get all booking
+         * app.get("/booking/:id") // get a specific booking
+         * app.post("/booking") // add a new booking
+         * app.patch("/booking/:id") // 
+         * app.delete("/booking/:id") //
+         */
+        app.post("/booking", async (req, res) => {
+            const booking = req.body;
+            const query = { treatment: booking.treatment, date: booking.date, patientName: booking.patientName };
+            const exist = await bookingCollection.findOne(query);
+            if (exist) {
+                return res.send({ success: false, booking: exist });
+            }
+            const result = await bookingCollection.insertOne(booking);
+            return res.send({ success: true, result });
 
         })
 
