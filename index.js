@@ -58,6 +58,17 @@ async function run() {
          * app.patch("/booking/:id") // 
          * app.delete("/booking/:id") //
          */
+
+
+
+        app.get('/booking', async (req, res) => {
+            const patientEmail = req.query.patientEmail;
+            const query = { patientEmail: patientEmail };
+            const bookings = await bookingCollection.find(query).toArray();
+            res.send(bookings);
+        })
+
+
         app.post("/booking", async (req, res) => {
             const booking = req.body;
             const query = { treatment: booking.treatment, date: booking.date, patientName: booking.patientName };
