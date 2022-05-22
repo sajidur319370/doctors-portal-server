@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+jwt = require('jsonwebtoken');
 require("dotenv").config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const app = express();
@@ -17,11 +18,30 @@ async function run() {
         await client.connect();
         const serviceCollection = client.db("doctors_portal").collection("services");
         const bookingCollection = client.db("doctors_portal").collection("bookings");
+        const userCollection = client.db("doctors_portal").collection("users");
         app.get("/service", async (req, res) => {
             const query = {};
             const cursor = serviceCollection.find(query);
             const services = await cursor.toArray();
             res.send(services);
+        })
+
+
+
+
+        app.put("/user/:email", async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const option = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await userCollection.updateOne(filter, updateDoc, option);
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' });
+            res.send({ result, token })
+
+
         })
 
         // this is not the proper way ..use mongodb lookup aggregation,pipeline,group
@@ -56,6 +76,7 @@ async function run() {
          * app.get("/booking/:id") // get a specific booking
          * app.post("/booking") // add a new booking
          * app.patch("/booking/:id") // 
+         * app.put("/booking/:id") // upsert ==> update or insert
          * app.delete("/booking/:id") //
          */
 
