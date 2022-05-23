@@ -35,9 +35,29 @@ async function run() {
         const serviceCollection = client.db("doctors_portal").collection("services");
         const bookingCollection = client.db("doctors_portal").collection("bookings");
         const userCollection = client.db("doctors_portal").collection("users");
+        const doctorCollection = client.db("doctors_portal").collection("doctors");
+
+        const verifyAdmin = async (req, res, next) => {
+            const requester = req.decoded.email;
+            const requesterAccount = await userCollection.findOne({ email: requester });
+            if (requesterAccount.role === "admin") {
+                next();
+
+            } else {
+                return res.status(403).send({ message: "Forbidden Access" });
+            }
+
+
+        }
+
+
+
+
+
+
         app.get("/service", async (req, res) => {
             const query = {};
-            const cursor = serviceCollection.find(query);
+            const cursor = serviceCollection.find(query).project({ name: 1 });
             const services = await cursor.toArray();
             res.send(services);
         })
@@ -61,20 +81,12 @@ async function run() {
         // =================================Admin============
         app.put("/user/admin/:email", verifyJWT, async (req, res) => {
             const email = req.params.email;
-            const requester = req.decoded.email;
-            const requesterAccount = await userCollection.findOne({ email: requester });
-            if (requesterAccount.role === "admin") {
-                const filter = { email: email };
-                const updateDoc = {
-                    $set: { role: "admin" },
-                };
-                const result = await userCollection.updateOne(filter, updateDoc);
-                return res.send(result)
-            } else {
-                return res.status(403).send({ message: "Forbidden Access" });
-            }
-
-
+            const filter = { email: email };
+            const updateDoc = {
+                $set: { role: "admin" },
+            };
+            const result = await userCollection.updateOne(filter, updateDoc);
+            return res.send(result);
         })
         // ===========================================User============
         app.put("/user/:email", async (req, res) => {
@@ -149,6 +161,34 @@ async function run() {
             return res.send({ success: true, result });
 
         })
+        // ===================for add ================
+        app.post("/doctor", verifyJWT, verifyAdmin, async (req, res) => {
+            const doctor = req.body;
+            const result = await doctorCollection.insertOne(doctor)
+            res.send(result);
+        });
+
+
+
+        // ======================for delete===========
+        app.delete("/doctor/:email", verifyJWT, verifyAdmin, async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email }
+            const result = await doctorCollection.deleteOne(filter)
+            res.send(result);
+        });
+
+        app.get("/email", async (req, res) => {
+            res.send({ status: true })
+        })
+
+
+
+        // =========for show===========================
+        app.get('/doctor', async (req, res) => {
+            const doctors = await doctorCollection.find().toArray();
+            res.send(doctors);
+        });
 
     } finally {
 
@@ -156,9 +196,7 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.get("/", (req, res) => {
-    res.send("Welcome To Doctors Portal");
-})
+
 
 app.listen(port, () => {
     console.log("Doctors Portal Server is Running at port:", port);
