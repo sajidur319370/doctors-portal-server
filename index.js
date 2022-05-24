@@ -237,6 +237,9 @@ async function run() {
 }
 run().catch(console.dir);
 
+app.get("/", (req, res) => {
+    res.send('Hello From Dr Uncle');
+})
 app.listen(port, () => {
     console.log("Doctors Portal Server is Running at port:", port);
 });
